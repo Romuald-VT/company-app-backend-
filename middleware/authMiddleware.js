@@ -3,7 +3,8 @@ const { User } = require('../models/user')
 
 const authHandler = async(req,res,next)=>
 {
-    let token = req.header('x-token-bearer')
+    
+    let token = req.headers.authorization
     if(!token) return res.status(401).json({error: "acces non authorise !"})
     
     try{
@@ -13,9 +14,7 @@ const authHandler = async(req,res,next)=>
     }
     catch(err)
     {
-        console.log(err.message)
-        res.status(401)
-        throw new Error('action non permise')
+        res.status(401).json({message:"action non permise !"})
     }
 }
 

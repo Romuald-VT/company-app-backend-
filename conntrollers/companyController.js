@@ -41,20 +41,7 @@ const getCompanyByName = asyncHandler(async(req,res)=>{
     return res.status(200).json({data:company})
 })
 
-const getCompanyByWebsite = asyncHandler(async(req,res)=>{
 
-    if(! req.params.website)
-    {
-        return res.status(400).json({error: "veillez fournir un site web valide !"})
-    }
-    let company = await Company.findOne({email:req.params.website})
-    if(!company)
-    {
-        return res.status(404).json({error: 'entreprise recherchee introuvable !'})
-    }
-
-    return res.status(200).json({data:company})
-})
 
 const postMail = asyncHandler(async(req,res)=>{
     
@@ -71,7 +58,8 @@ const postMail = asyncHandler(async(req,res)=>{
         from: "no-reply@companyapp.com",
         to:to,
         subject:object,
-        text:message
+        text:message,
+        html:"<b>"+message+"</b>"
     }
 
     transporter.sendMail(mailOptions,(error,info)=>{
@@ -83,6 +71,63 @@ const postMail = asyncHandler(async(req,res)=>{
         return res.status(200).json(info.response)
     })
 })
+
+async function sendEmail(recipient,subject,pullMessage) {
+
+    const transporter = nodemailer.createTransport({
+        host: 'localhost',
+        port: 1025,
+        secure: false,
+        
+    });
+    const mailOptions = {
+        from: 'no-reply@companyapp.com',
+        to: recipient.email,
+        subject:subject,
+        message:pullMessage,
+        html:'<p>'+pullMessage+'</p>'
+    };
+
+    try {
+        const info = await transporter.sendMail(mailOptions);
+        console.log(`Email envoyé à ${recipient.email}: ${info.messageId}`);
+        return info;
+    } catch (error) {
+        console.error(`Erreur lors de l'envoi à ${recipient.email}:`, error);
+        throw error;
+    }
+}
+
+const broadCastEmail= asyncHandler(async(req,res)=>{
+    
+    let recipients = []
+    console.log(req.body)
+    if(!req.body.to || !req.body.subject || !req.body.message)
+    {
+        return res.status(400).json({message:"format de mails invalide !"})
+    }
+    const mail = req.body.to.split(",")
+
+    for(let i=0;i<mail.length;i++)
+    {
+        let data = await Company.findOne({email:mail[i]}).select({id:1,email:1})
+        recipients.push(data)
+    }
+    
+   
+    try{
+    const emailPromises = recipients.map(recipient => sendEmail(recipient,req.body.object,req.body.message));
+    const results = await Promise.all(emailPromises);
+    
+    return res.status(200).json({message:"email envoyes avec succes !"});
+    }
+    catch (error) {
+    throw new Error(error)
+}
+
+})
+
+
 const createCompany = asyncHandler(async(req,res)=>{
 
 
@@ -97,13 +142,15 @@ const createCompany = asyncHandler(async(req,res)=>{
     if(cmpny) return res.status(400).json({error: "l'entreprise existe deja !"})
 
     const companyData = new Company({
-        company: req.body.company,
+        company:req.body.company,
+        telephone:req.body.telephone,
         email:req.body.email,
         website:req.body.website,
-        phone:req.body.phone,
+        countryHeadquater:req.body.countryHeadquater,
         domain:req.body.domain,
-        ceo:req.body.ceo,
-        country:req.body.country
+        homeland:req.body.homeland,
+        contactName:req.body.contactName,
+        contactLocation:req.body.contactLocation
     })
     companyData.save()
     return res.status(201).json({created:true})
@@ -124,16 +171,20 @@ const updateCompany = asyncHandler(async(req,res)=>{
         throw new Error(errorObject)
     }
     const updateData = await Company.updateMany({email:req.params.email},{$set:{
-        company: req.body.company,
-        email: req.body.email,
+        company:req.body.company,
+        telephone:req.body.telephone,
+        email:req.body.email,
         website:req.body.website,
-        phone:req.body.phone,
+        countryHeadquater:req.body.countryHeadquater,
         domain:req.body.domain,
-        ceo:req.body.ceo,
-        country:req.body.country,
+        homeland:req.body.homeland,
+        contactName:req.body.contactName,
+        contactLocation:req.body.contactLocation
     }})
     return res.status(202).json({message:updateData})
 })
+
+
 
 const deleteCompanyByEmail = asyncHandler(async(req,res)=>{
 
@@ -144,8 +195,27 @@ const deleteCompanyByEmail = asyncHandler(async(req,res)=>{
     return res.status(200).json({message: data})
 })
 
-const deleteAllData = asyncHandler(async(req,res)=>{
-    const data = await Company.deleteMany({})
-    return res.status(202).json({data: data})
+const multipleRemove = asyncHandler(async(req,res)=>{
+
+    let dataSuppressed = []
+    if(!req.body.mailList)
+    {
+        throw new Error('veuillez selectionner des emails')
+    }
+    const list = req.body.mailList.split(',')
+    for(let i=0;i<list.length;i++)
+    {
+        let data = await Company.deleteOne({email:list[i]})
+        dataSuppressed.push(data)
+    }
+
+    return res.status(202).json({acknolegement:dataSuppressed})
+    
 })
-module.exports={getAllCompanies,getCompanyByEmail,getCompanyByName,getCompanyByWebsite,createCompany,updateCompany,deleteAllData,deleteCompanyByEmail,postMail}
+
+const deleteAllData = asyncHandler(async(req,res)=>{
+    const data = await Company.deleteMany()
+    return res.status(202).json({ data})
+})
+module.exports={getAllCompanies,getCompanyByEmail,getCompanyByName,createCompany,broadCastEmail,updateCompany,deleteAllData,deleteCompanyByEmail,
+    multipleRemove,postMail}

@@ -42,7 +42,7 @@ const login = asyncHandler(async(req,res)=>{
         return res.status(400).json({error: "utilisateur et/ou mot de passe incorrect"})
     }
     let token = user.generateToken()
-    return res.header('x-token-bearer',token).status(200).json({login:true})
+    return res.status(200).json({token})
 })
 
 module.exports ={login,createUser}

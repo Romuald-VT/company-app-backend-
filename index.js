@@ -15,7 +15,7 @@ app.use(express.urlencoded({extended:false}))
 app.use(cors())
 
 
-app.use('/api/companies',companyRouter)
+app.use('/api/companies',authHandler,companyRouter)
 app.use('/api/users',userRouter)
 app.use('*',notFoundHandler)
 app.use(errorHandler)

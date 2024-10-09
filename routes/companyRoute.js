@@ -2,12 +2,13 @@ const express = require('express')
 const {getAllCompanies,
     getCompanyByEmail,
     getCompanyByName,
-    getCompanyByWebsite,
     createCompany,
     updateCompany,
     deleteAllData,
     deleteCompanyByEmail,
-    postMail} = require('../conntrollers/companyController')
+    broadCastEmail,
+    postMail,
+    multipleRemove} = require('../conntrollers/companyController')
 
 const {authHandler} = require('../middleware/authMiddleware')
 
@@ -16,9 +17,10 @@ const companyRouter = express.Router()
 companyRouter.get("/all",getAllCompanies)
 companyRouter.get('/:email',getCompanyByEmail)
 companyRouter.get('/:name',getCompanyByName)
-companyRouter.get('/:website',getCompanyByWebsite)
 companyRouter.post('/add',createCompany)
+companyRouter.post('/remove',multipleRemove)
 companyRouter.post("/mail",postMail)
+companyRouter.post('/broadCast',broadCastEmail)
 companyRouter.put('/:email',updateCompany)
 companyRouter.delete('/:email',deleteCompanyByEmail)
 companyRouter.delete("/all",deleteAllData)
